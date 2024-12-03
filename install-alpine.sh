@@ -12,8 +12,21 @@ MOUNTPOINT="/mnt"
 MAIN_REPO="http://dl-cdn.alpinelinux.org/alpine/v3.20/main"
 COMMUNITY_REPO="http://dl-cdn.alpinelinux.org/alpine/v3.20/community"
 
-echo "$MAIN_REPO" >> /etc/apk/repositories
-echo "$COMMUNITY_REPO" >> /etc/apk/repositories
+# Check if the main repository is already in the file; if not, add it
+if ! grep -q "$MAIN_REPO" /etc/apk/repositories; then
+    echo "$MAIN_REPO" >> /etc/apk/repositories
+    echo "Added main repository: $MAIN_REPO"
+else
+    echo "Main repository already exists: $MAIN_REPO"
+fi
+
+# Check if the community repository is already in the file; if not, add it
+if ! grep -q "$COMMUNITY_REPO" /etc/apk/repositories; then
+    echo "$COMMUNITY_REPO" >> /etc/apk/repositories
+    echo "Added community repository: $COMMUNITY_REPO"
+else
+    echo "Community repository already exists: $COMMUNITY_REPO"
+fi
 
 # Update repositories and install necessary tools
 apk update
