@@ -1,19 +1,8 @@
 #!/bin/sh
 
-# Enable tracing so that all commands are shown in the terminal
-set -x
-
-# Set variables for disk and partition
-DISK="/dev/sda"
-PARTITION="${DISK}1"
-MOUNTPOINT="/mnt"
-MAIN_REPO="http://dl-cdn.alpinelinux.org/alpine/v3.20/main"
-COMMUNITY_REPO="http://dl-cdn.alpinelinux.org/alpine/v3.20/community"
-
-set +x
-
 echo "Adjusting repositories"
 # Check if the main repository is already in the file; if not, add it
+MAIN_REPO="http://dl-cdn.alpinelinux.org/alpine/v3.20/main"
 if ! grep -q "$MAIN_REPO" /etc/apk/repositories; then
     echo "$MAIN_REPO" >> /etc/apk/repositories
     echo "Added main repository: $MAIN_REPO"
@@ -22,6 +11,7 @@ else
 fi
 
 # Check if the community repository is already in the file; if not, add it
+COMMUNITY_REPO="http://dl-cdn.alpinelinux.org/alpine/v3.20/community"
 if ! grep -q "$COMMUNITY_REPO" /etc/apk/repositories; then
     echo "$COMMUNITY_REPO" >> /etc/apk/repositories
     echo "Added community repository: $COMMUNITY_REPO"
@@ -40,8 +30,8 @@ set -x
 # Create a partition table with a boot partition and a primary partition
 # 1: Boot partition (e.g., 512MB)
 # 2: Primary partition (remainder of the disk)
-sfdisk ${DISK} <<EOF
-label: dos
+sfdisk /dev/sda <<EOF
+label: docker-server
 unit: sectors
 
 1 : start=2048, size=+512M, type=83, bootable
@@ -51,74 +41,64 @@ EOF
 read
 
 # Refresh partition table
-partprobe /dev/sda
-
-# Wait for user to acknowledge commands already run
-read
-
-## Format the partition with ext4
-#mkfs.ext4 ${PARTITION}
+# partprobe /dev/sda
 
 # Format the partitions
-echo "Formatting /dev/sda1 as ext4..."
-mkfs.ext4 /dev/sda1
+echo "Formatting /dev/sda1 as FAT32..."
+mkfs.vfat -F 32 /dev/sda1
 
-echo "Formatting /dev/sda2 as FAT32..."
-mkfs.vfat -F 32 /dev/sda2
+echo "Formatting /dev/sda2 as ext4..."
+mkfs.ext4 /dev/sda2
 
 # Wait for user to acknowledge commands already run
 read
 
-# Mount the partition
-#mount ${PARTITION} ${MOUNTPOINT}
-
 # Mount the root partition
-echo "Mounting /dev/sda1 to /mnt..."
-mount /dev/sda1 /mnt
+echo "Mounting /dev/sda2 to /mnt..."
+mount /dev/sda2 /mnt
 
 # Create and mount the /boot partition
-echo "Creating and mounting /mnt/boot..."
+echo "Creating /mnt/boot..."
 mkdir /mnt/boot
-mount /dev/sda2 /mnt/boot
+
+echo "Mounting /dev/sda1 to /mnt/boot..."
+mount /dev/sda1 /mnt/boot
 
 # Wait for user to acknowledge commands already run
 read
 
 # Install the base Alpine Linux system to the mounted partition
-setup-disk -m sys ${MOUNTPOINT} <<EOF
-$DISK
+setup-disk -m sys /mnt <<EOF
+/dev/sda
 EOF
 
 # Wait for user to acknowledge commands already run
 read
 
-## Install syslinux bootloader
-#syslinux --install ${PARTITION}
-
-# Install Syslinux bootloader on /dev/sda2 (boot partition)
-echo "Installing Syslinux bootloader on /dev/sda2..."
-syslinux --install /dev/sda2
+# Install Syslinux bootloader on /dev/sda1 (boot partition)
+echo "Installing Syslinux bootloader on /dev/sda1..."
+syslinux --install /dev/sda1
 
 # Wait for user to acknowledge commands already run
 read
 
 # Install MBR bootloader
-cat /usr/share/syslinux/mbr.bin > ${DISK}
+cat /usr/share/syslinux/mbr.bin > /dev/sda
 
 # Wait for user to acknowledge commands already run
 read
 
 # Configure fstab
-cat <<EOF > ${MOUNTPOINT}/etc/fstab
-${PARTITION}    /    ext4    defaults    0 1
-/dev/sda2       /boot       vfat    defaults    0 2
+cat <<EOF > /mnt/etc/fstab
+/dev/sda1       /boot       vfat    defaults    0 2
+/dev/sda2       /           ext4    defaults    0 1
 EOF
 
 # Wait for user to acknowledge commands already run
 read
 
 # Unmount the partition
-umount ${MOUNTPOINT}
+umount /mnt
 
 mount -a
 
