@@ -31,7 +31,7 @@ set -x
 # 1: Boot partition (e.g., 512MB)
 # 2: Primary partition (remainder of the disk)
 sfdisk /dev/sda <<EOF
-label: docker-server
+label: dos
 unit: sectors
 
 1 : start=2048, size=+512M, type=83, bootable
