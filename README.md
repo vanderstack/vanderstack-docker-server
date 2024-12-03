@@ -15,13 +15,13 @@ udhcpc -i eth0
 ```
 8. download installer script
 ```sh
-wget https://github.com/vanderstack/vanderstack-docker-server/raw/main/install-alpine.sh -0 /tmp/install-alpine.sh
+wget https://github.com/vanderstack/vanderstack-docker-server/raw/main/install-alpine.sh
 ```
 9. make installer script executable
 ```sh
-chmod +x /tmp/install-alpine.sh
+chmod +x install-alpine.sh
 ```
 10. run installer script
 ```sh
-/tmp/install-alpine.sh
+./install-alpine.sh
 ```
