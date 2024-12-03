@@ -28,9 +28,15 @@ else
     echo "Community repository already exists: $COMMUNITY_REPO"
 fi
 
+# Wait for user to acknowledge commands already run
+read
+
 # Update repositories and install necessary tools
 apk update
 apk add e2fsprogs syslinux util-linux sfdisk
+
+# Wait for user to acknowledge commands already run
+read
 
 # Create a partition table and a single primary partition
 sfdisk ${DISK} <<EOF
@@ -41,30 +47,58 @@ unit: sectors
 1 : start=2048, size=, type=83, bootable
 EOF
 
+# Wait for user to acknowledge commands already run
+read
+
 # Format the partition with ext4
 mkfs.ext4 ${PARTITION}
 
+# Wait for user to acknowledge commands already run
+read
+
 # Mount the partition
 mount ${PARTITION} ${MOUNTPOINT}
+
+# Wait for user to acknowledge commands already run
+read
 
 # Install the base Alpine Linux system to the mounted partition
 setup-disk -m sys ${MOUNTPOINT} <<EOF
 $DISK
 EOF
 
+# Wait for user to acknowledge commands already run
+read
+
 # Install syslinux bootloader
 syslinux --install ${PARTITION}
 
+# Wait for user to acknowledge commands already run
+read
+
 # Install MBR bootloader
 cat /usr/share/syslinux/mbr.bin > ${DISK}
+
+# Wait for user to acknowledge commands already run
+read
 
 # Configure fstab
 cat <<EOF > ${MOUNTPOINT}/etc/fstab
 ${PARTITION}    /    ext4    defaults    0 1
 EOF
 
+# Wait for user to acknowledge commands already run
+read
+
 # Unmount the partition
 umount ${MOUNTPOINT}
 
+# Wait for user to acknowledge commands already run
+read
+
 # Inform the user to unmount the DVD and reboot
-echo "Installation complete! Unmount the ISO from the DVD drive and reboot the VM to boot from disk."
+echo "Installation complete!"
+echo "Next Steps:"
+echo "1 - shutdown the VM using the command poweroff."
+echo "2 - remove the DVD drive and set the virtual disk drive as the startup drive."
+echo "This is done by running the creation powershell script choosing to delete the VM but not the disk."
