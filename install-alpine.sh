@@ -38,26 +38,52 @@ apk add e2fsprogs syslinux util-linux sfdisk
 # Wait for user to acknowledge commands already run
 read
 
-# Create a partition table and a single primary partition
-sfdisk ${DISK} <<EOF
-label: dos
-label-id: 0x83
-unit: sectors
+## Create a partition table and a single primary partition
+#sfdisk ${DISK} <<EOF
+#label: dos
+#label-id: 0x83
+#unit: sectors
+#
+#1 : start=2048, size=, type=83, bootable
+#EOF
 
-1 : start=2048, size=, type=83, bootable
+# Create partitions using sfdisk
+echo "Creating partitions on /dev/sda..."
+sfdisk /dev/sda <<EOF
+/dev/sda1   *  ext4
+/dev/sda2      vfat
 EOF
+
+# Refresh partition table
+partprobe /dev/sda
 
 # Wait for user to acknowledge commands already run
 read
 
-# Format the partition with ext4
-mkfs.ext4 ${PARTITION}
+## Format the partition with ext4
+#mkfs.ext4 ${PARTITION}
+
+# Format the partitions
+echo "Formatting /dev/sda1 as ext4..."
+mkfs.ext4 /dev/sda1
+
+echo "Formatting /dev/sda2 as FAT32..."
+mkfs.vfat -F 32 /dev/sda2
 
 # Wait for user to acknowledge commands already run
 read
 
 # Mount the partition
-mount ${PARTITION} ${MOUNTPOINT}
+#mount ${PARTITION} ${MOUNTPOINT}
+
+# Mount the root partition
+echo "Mounting /dev/sda1 to /mnt..."
+mount /dev/sda1 /mnt
+
+# Create and mount the /boot partition
+echo "Creating and mounting /mnt/boot..."
+mkdir /mnt/boot
+mount /dev/sda2 /mnt/boot
 
 # Wait for user to acknowledge commands already run
 read
@@ -70,8 +96,12 @@ EOF
 # Wait for user to acknowledge commands already run
 read
 
-# Install syslinux bootloader
-syslinux --install ${PARTITION}
+## Install syslinux bootloader
+#syslinux --install ${PARTITION}
+
+# Install Syslinux bootloader on /dev/sda2 (boot partition)
+echo "Installing Syslinux bootloader on /dev/sda2..."
+syslinux --install /dev/sda2
 
 # Wait for user to acknowledge commands already run
 read
@@ -85,6 +115,7 @@ read
 # Configure fstab
 cat <<EOF > ${MOUNTPOINT}/etc/fstab
 ${PARTITION}    /    ext4    defaults    0 1
+/dev/sda2       /boot       vfat    defaults    0 2
 EOF
 
 # Wait for user to acknowledge commands already run
@@ -92,6 +123,8 @@ read
 
 # Unmount the partition
 umount ${MOUNTPOINT}
+
+mount -a
 
 # Wait for user to acknowledge commands already run
 read
