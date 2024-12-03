@@ -24,24 +24,15 @@ echo "installing packages"
 apk update
 apk add e2fsprogs syslinux util-linux sfdisk
 
-# Enable tracing so that all commands are shown in the terminal
-set -x
-
 # Create a partition table with a boot partition and a primary partition
 # 1: Boot partition (e.g., 512MB)
 # 2: Primary partition (remainder of the disk)
 sfdisk /dev/sda <<EOF
 label: dos
 unit: sectors
-
 1 : start=2048, size=+512M, type=83, bootable
 2 : start=, size=, type=83
 EOF
-
-read
-
-# Refresh partition table
-# partprobe /dev/sda
 
 # Format the partitions
 echo "Formatting /dev/sda1 as FAT32..."
@@ -50,40 +41,37 @@ mkfs.vfat -F 32 /dev/sda1
 echo "Formatting /dev/sda2 as ext4..."
 mkfs.ext4 /dev/sda2
 
-# Wait for user to acknowledge commands already run
-read
-
 # Mount the root partition
 echo "Mounting /dev/sda2 to /mnt..."
 mount /dev/sda2 /mnt
 
 # Create and mount the /boot partition
 echo "Creating /mnt/boot..."
-mkdir /mnt/boot
+mkdir -p /mnt/boot
 
 echo "Mounting /dev/sda1 to /mnt/boot..."
 mount /dev/sda1 /mnt/boot
-
-# Wait for user to acknowledge commands already run
-read
 
 # Install the base Alpine Linux system to the mounted partition
 setup-disk -m sys /mnt <<EOF
 /dev/sda
 EOF
 
-# Wait for user to acknowledge commands already run
-read
-
 # Install Syslinux bootloader on /dev/sda1 (boot partition)
 echo "Installing Syslinux bootloader on /dev/sda1..."
 syslinux --install /dev/sda1
 
-# Wait for user to acknowledge commands already run
-read
-
 # Install MBR bootloader
 cat /usr/share/syslinux/mbr.bin > /dev/sda
+
+read
+set -x
+
+fdisk -l /dev/sda
+ls /mnt
+cat /mnt/etc/fstab
+ls /mnt/bin/init
+ls /mnt/etc
 
 # Wait for user to acknowledge commands already run
 read
