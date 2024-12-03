@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Enable tracing so that all commands are shown in the terminal
+set -x
+
 # Set variables for disk and partition
 DISK="/dev/sda"       # Adjust this if your disk is not /dev/sda
 PARTITION="${DISK}1" # Primary partition
