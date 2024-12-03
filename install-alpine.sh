@@ -53,45 +53,34 @@ echo "Mounting /dev/sda1 to /mnt/boot..."
 mount /dev/sda1 /mnt/boot
 
 # Install the base Alpine Linux system to the mounted partition
+set -x
 setup-disk -m sys /mnt <<EOF
 /dev/sda
 EOF
 
 # Install Syslinux bootloader on /dev/sda1 (boot partition)
-echo "Installing Syslinux bootloader on /dev/sda1..."
-syslinux --install /dev/sda1
+# echo "Installing Syslinux bootloader on /dev/sda1..."
+# syslinux --install /dev/sda1
 
 # Install MBR bootloader
-cat /usr/share/syslinux/mbr.bin > /dev/sda
+# cat /usr/share/syslinux/mbr.bin > /dev/sda
 
-read
-set -x
-
-fdisk -l /dev/sda
-ls /mnt
-cat /mnt/etc/fstab
-ls /mnt/bin/init
-ls /mnt/etc
-
-# Wait for user to acknowledge commands already run
-read
+# fdisk -l /dev/sda
+# ls /mnt
+# cat /mnt/etc/fstab
+# ls /mnt/bin/init
+# ls /mnt/etc
 
 # Configure fstab
-cat <<EOF > /mnt/etc/fstab
-/dev/sda1       /boot       vfat    defaults    0 2
-/dev/sda2       /           ext4    defaults    0 1
-EOF
-
-# Wait for user to acknowledge commands already run
-read
+# cat <<EOF > /mnt/etc/fstab
+# /dev/sda1       /boot       vfat    defaults    0 2
+# /dev/sda2       /           ext4    defaults    0 1
+# EOF
 
 # Unmount the partition
-umount /mnt
+# umount /mnt
 
-mount -a
-
-# Wait for user to acknowledge commands already run
-read
+# mount -a
 
 # Inform the user to unmount the DVD and reboot
 echo "Installation complete!"
