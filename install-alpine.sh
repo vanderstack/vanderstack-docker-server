@@ -54,9 +54,7 @@ mount /dev/sda1 /mnt/boot
 
 # Install the base Alpine Linux system to the mounted partition
 set -x
-setup-disk -m sys /mnt <<EOF
-/dev/sda
-EOF
+setup-disk -m sys -o /mnt
 
 # Install Syslinux bootloader on /dev/sda1 (boot partition)
 # echo "Installing Syslinux bootloader on /dev/sda1..."
