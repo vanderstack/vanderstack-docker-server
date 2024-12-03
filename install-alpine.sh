@@ -8,6 +8,13 @@ DISK="/dev/sda"       # Adjust this if your disk is not /dev/sda
 PARTITION="${DISK}1" # Primary partition
 MOUNTPOINT="/mnt"
 
+# Define the repository URLs to add
+MAIN_REPO="http://dl-cdn.alpinelinux.org/alpine/v3.20/main"
+COMMUNITY_REPO="http://dl-cdn.alpinelinux.org/alpine/v3.20/community"
+
+echo "$MAIN_REPO" >> /etc/apk/repositories
+echo "$COMMUNITY_REPO" >> /etc/apk/repositories
+
 # Update repositories and install necessary tools
 apk update
 apk add e2fsprogs syslinux util-linux sfdisk
