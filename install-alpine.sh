@@ -4,14 +4,15 @@
 set -x
 
 # Set variables for disk and partition
-DISK="/dev/sda"       # Adjust this if your disk is not /dev/sda
-PARTITION="${DISK}1" # Primary partition
+DISK="/dev/sda"
+PARTITION="${DISK}1"
 MOUNTPOINT="/mnt"
-
-# Define the repository URLs to add
 MAIN_REPO="http://dl-cdn.alpinelinux.org/alpine/v3.20/main"
 COMMUNITY_REPO="http://dl-cdn.alpinelinux.org/alpine/v3.20/community"
 
+set +x
+
+echo "Adjusting repositories"
 # Check if the main repository is already in the file; if not, add it
 if ! grep -q "$MAIN_REPO" /etc/apk/repositories; then
     echo "$MAIN_REPO" >> /etc/apk/repositories
@@ -28,31 +29,26 @@ else
     echo "Community repository already exists: $COMMUNITY_REPO"
 fi
 
-# Wait for user to acknowledge commands already run
-read
-
 # Update repositories and install necessary tools
+echo "installing packages"
 apk update
 apk add e2fsprogs syslinux util-linux sfdisk
 
-# Wait for user to acknowledge commands already run
-read
+# Enable tracing so that all commands are shown in the terminal
+set -x
 
-## Create a partition table and a single primary partition
-#sfdisk ${DISK} <<EOF
-#label: dos
-#label-id: 0x83
-#unit: sectors
-#
-#1 : start=2048, size=, type=83, bootable
-#EOF
+# Create a partition table with a boot partition and a primary partition
+# 1: Boot partition (e.g., 512MB)
+# 2: Primary partition (remainder of the disk)
+sfdisk ${DISK} <<EOF
+label: dos
+unit: sectors
 
-# Create partitions using sfdisk
-echo "Creating partitions on /dev/sda..."
-sfdisk /dev/sda <<EOF
-/dev/sda1   *  ext4
-/dev/sda2      vfat
+1 : start=2048, size=+512M, type=83, bootable
+2 : start=, size=, type=83
 EOF
+
+read
 
 # Refresh partition table
 partprobe /dev/sda
