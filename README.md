@@ -4,6 +4,9 @@
 4. run powershell script create-docker-vm.ps1
 5. launch VM
 6. log into VM as root
+```sh
+root
+```
 7. initialize VM network connection
 ```sh
 setup-interfaces
