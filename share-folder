@@ -1,0 +1,26 @@
+# Variables
+$folderPath = "E:\vanderstack-docker-server\share"
+$shareName = "vanderstack-share"
+$username = "vanderstack-share"
+$permissions = "Read,Change"  # Specify the permissions for the user
+
+# Ensure the folder exists
+if (-Not (Test-Path -Path $folderPath)) {
+    Write-Output "Error: The folder $folderPath does not exist."
+    exit 1
+}
+
+# Create the share
+Write-Output "Creating share $shareName for folder $folderPath..."
+New-SmbShare -Name $shareName -Path $folderPath -FullAccess $username
+
+# Grant NTFS permissions to the user
+Write-Output "Granting NTFS permissions to $username..."
+$acl = Get-Acl -Path $folderPath
+$accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($username, "Modify", "ContainerInherit,ObjectInherit", "None", "Allow")
+$acl.AddAccessRule($accessRule)
+Set-Acl -Path $folderPath -AclObject $acl
+
+# Display share information
+Write-Output "Share $shareName created successfully!"
+Get-SmbShare -Name $shareName
