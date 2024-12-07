@@ -30,7 +30,7 @@ if ($userExists) {
 
     # Create the new user
     Write-Output "Creating User '$username'."
-    New-LocalUser -Name $username -Password $password -FullName "VanderStack Share User" -Description "User for vanderstack-share access" -Confirm:$false
+    New-LocalUser -Name $username -Password $password -FullName "VanderStack Share User" -Description "User for $shareName access" -Confirm:$false
 
     # Get the user object from local users
     $userExists = Get-LocalUser -Name $username -ErrorAction SilentlyContinue
@@ -44,6 +44,7 @@ if ($userExists) {
         Add-LocalGroupMember -Group "Users" -Member $username
 
         # Disable the user's ability to log in interactively by setting their account to disabled
+        # Account being disabled does not prevent mounting or file access with NTFS and share access to Users
         Write-Output "Setting User '$username' account status to disabled to prevent login."
         Disable-LocalUser -Name $username
 
@@ -67,37 +68,56 @@ if (-Not (Test-Path -Path $folderPath)) {
     $acl = Get-Acl -Path $folderPath
 
     # Disable NTFS access permissions inheritance and do not copy the existing permissions
+    Write-Host "Disabling access control inheritance. Access will require an explicitly allow rule."
     $acl.SetAccessRuleProtection($true, $false)
 
-    # Create access rule for local users granting read/write access to the folder
+    $FullControl = [System.Security.AccessControl.FileSystemRights]::FullControl
+    $ReadWrite = $FullControl -band (-bnot [System.Security.AccessControl.FileSystemRights]::ExecuteFile)
+
+    # Define inheritance and propagation flags
+    $InheritanceFlags = [System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor [System.Security.AccessControl.InheritanceFlags]::ObjectInherit
+    $PropagationFlags = [System.Security.AccessControl.PropagationFlags]::None
+    $AccessControlType = [System.Security.AccessControl.AccessControlType]::Allow
+
+    # this is not required to mount or make changes
+    # $usernameAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+    #     "$username",
+    #     $FullControl,
+    #     $InheritanceFlags,
+    #     $PropagationFlags,
+    #     $AccessControlType
+    # )
+# 
+    # $acl.SetAccessRule($usernameAccessRule)
+    # Write-Host "Granted $($usernameAccessRule.FileSystemRights) access for $($usernameAccessRule.IdentityReference) to '$folderPath'."
+
+    # Without Read/Write access for Users touch results in permission denied
     $usersAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
-        "Users", # group the rule applies to
-        "ReadData, WriteData", # grant read and write permissions
-        "ContainerInherit,ObjectInherit", # apply permissions to subfolders and files
-        "None", # no specific flags for the rule
-        "Allow" # rule type is allow rather than deny
+        "Users",
+        $ReadWrite,
+        $InheritanceFlags,
+        $PropagationFlags,
+        $AccessControlType
     )
 
-    # Add access to Users
-    $acl.SetAccessRule($usersAccessRule)
+    # without this rule mount has permissions but touching a file results in permission denied
+    # $acl.SetAccessRule($usersAccessRule)
+    Write-Host "Granted $($usersAccessRule.FileSystemRights) access for $($usersAccessRule.IdentityReference) to '$folderPath'."
 
     # Create access rule for Administrators granting full access to the folder
     $adminAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
-        "Administrators", # group the rule applies to
-        "FullControl", # grant read and write permissions
-        "ContainerInherit,ObjectInherit", # apply permissions to subfolders and files
-        "None", # no specific flags for the rule
-        "Allow" # rule type is allow rather than deny
+        "Administrators",
+        $FullControl,
+        $InheritanceFlags,
+        $PropagationFlags,
+        $AccessControlType
     )
     
-    # Add access to Users
     $acl.SetAccessRule($adminAccessRule)
+    Write-Host "Granted $($adminAccessRule.FileSystemRights) for $($adminAccessRule.IdentityReference) to '$folderPath'."
 
     # Update NTFS access rules
     Set-Acl -Path $folderPath -AclObject $acl
-    Write-Host "Granted Read/Write access for 'Users' (local only) to '$folderPath'."
-    Write-Host "Granted Full Control for 'Administrators' to '$folderPath'."
-
 } else {
     Write-Host "The folder '$folderPath' already exists."
 }
@@ -110,10 +130,32 @@ if ($existingShare) {
 
 } else {
     
-    # Share the folder with the group "Users" having read/write
-    Write-Output "Sharing the folder '$folderPath' as '$shareName'. with Read/Write granted to Users."
-    New-SmbShare -Name $shareName -Path $folderPath -ChangeAccess "Users"
-    Write-Host "Folder '$folderPath' shared as '$shareName' with 'Users' granting Read/Write control."
+    Write-Output "Sharing the folder '$folderPath' as '$shareName'."
+    New-SmbShare -Name $shareName -Path $folderPath
+    
+    # $usernameShareRule = @{
+    #     Name = $shareName
+    #     AccountName = $username
+    #     AccessRight = "Full"
+    # }
+
+    $usersShareRule = @{
+        Name = $shareName
+        AccountName = "Users"
+        AccessRight = "Change"
+    }
+
+    # this is not required to mount or make changes
+    # Write-Host "Granting $($usernameShareRule.AccountName) $($usernameShareRule.AccessRight) access to '$shareName'."
+    # Grant-SmbShareAccess @usernameShareRule -Confirm:$false
+
+    # Without this rule mount results in permission denied
+    # Without this rule granting change touch results in permission denied
+    # Full is not required to read/write/delete/list directory contents
+    Write-Host "Granting $($usersShareRule.AccountName) $($usersShareRule.AccessRight) access to '$shareName'."
+    Grant-SmbShareAccess @usersShareRule -Confirm:$false
+    
+    Revoke-SmbShareAccess -Name $shareName -AccountName "Everyone" -Confirm:$false
 }
 
 # Prevent the window from closing after the program ends
