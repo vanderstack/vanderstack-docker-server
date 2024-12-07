@@ -19,4 +19,11 @@ add selenium
 add yt-download  
 add torrent box?  
 add android  
+add url shortener  
+add postrgeSQL admin  
+add dosbox games like xeen or dark queen of krynn  
+add AI stepmania  
+add AMV server using AI to download all  
+add wheresmything using AI to image recognition 
+add flight tracker 
 add more
