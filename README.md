@@ -11,6 +11,7 @@ Todo:
 add tailscale  
 add obsidian  
 add n8n  
+add portainer  
 add retroarch  
 add media server   
 add cloudflare tunnel  
