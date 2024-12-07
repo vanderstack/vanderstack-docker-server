@@ -32,10 +32,10 @@ if ($userExists) {
     Write-Output "Creating User '$username'."
     New-LocalUser -Name $username -Password $password -FullName "VanderStack Share User" -Description "User for vanderstack-share access" -Confirm:$false
 
-    # Confirm user creation
     # Get the user object from local users
     $userExists = Get-LocalUser -Name $username -ErrorAction SilentlyContinue
 
+    # Confirm user creation
     if ($userExists) {
         Write-Output "User '$username' has been created successfully."
 
@@ -43,8 +43,8 @@ if ($userExists) {
         Write-Output "Adding User '$username' to the Users group."
         Add-LocalGroupMember -Group "Users" -Member $username
 
-        Write-Output "Setting User '$username' account status to disabled to prevent login."
         # Disable the user's ability to log in interactively by setting their account to disabled
+        Write-Output "Setting User '$username' account status to disabled to prevent login."
         Disable-LocalUser -Name $username
 
     } else {
@@ -62,6 +62,42 @@ if (-Not (Test-Path -Path $folderPath)) {
     Write-Host "The folder '$folderPath' does not exist. Creating it now..."
     New-Item -Path $folderPath -ItemType Directory -Force | Out-Null
     Write-Host "Folder created successfully."
+
+    # Get NTFS access rules
+    $acl = Get-Acl -Path $folderPath
+
+    # Disable NTFS access permissions inheritance and do not copy the existing permissions
+    $acl.SetAccessRuleProtection($true, $false)
+
+    # Create access rule for local users granting read/write access to the folder
+    $usersAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+        "Users", # group the rule applies to
+        "ReadData, WriteData", # grant read and write permissions
+        "ContainerInherit,ObjectInherit", # apply permissions to subfolders and files
+        "None", # no specific flags for the rule
+        "Allow" # rule type is allow rather than deny
+    )
+
+    # Add access to Users
+    $acl.SetAccessRule($usersAccessRule)
+
+    # Create access rule for Administrators granting full access to the folder
+    $adminAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+        "Administrators", # group the rule applies to
+        "FullControl", # grant read and write permissions
+        "ContainerInherit,ObjectInherit", # apply permissions to subfolders and files
+        "None", # no specific flags for the rule
+        "Allow" # rule type is allow rather than deny
+    )
+    
+    # Add access to Users
+    $acl.SetAccessRule($adminAccessRule)
+
+    # Update NTFS access rules
+    Set-Acl -Path $folderPath -AclObject $acl
+    Write-Host "Granted Read/Write access for 'Users' (local only) to '$folderPath'."
+    Write-Host "Granted Full Control for 'Administrators' to '$folderPath'."
+
 } else {
     Write-Host "The folder '$folderPath' already exists."
 }
@@ -74,39 +110,12 @@ if ($existingShare) {
 
 } else {
     
-    # Create the share. Deny access to "Everyone" otherwise it will be accessible by default.
-    Write-Output "Sharing the folder '$folderPath' as '$shareName'. without any user permissions."
-    New-SmbShare -Name $shareName -Path $folderPath -NoAccess "Everyone"
-
-    # Grant the user read and write access to the share
-    Write-Output "Granting read and write access to user '$username' for share '$shareName'."
-    Grant-SmbShareAccess -Name $shareName -AccountName $username -AccessRight Change -Confirm:$false
+    # Share the folder with the group "Users" having read/write
+    Write-Output "Sharing the folder '$folderPath' as '$shareName'. with Read/Write granted to Users."
+    New-SmbShare -Name $shareName -Path $folderPath -ChangeAccess "Users"
+    Write-Host "Folder '$folderPath' shared as '$shareName' with 'Users' granting Read/Write control."
 }
 
 # Prevent the window from closing after the program ends
 Write-Host "Press any key to close this window..."
 [void][System.Console]::ReadKey()
-
-
-# Define folder path and share name
-$folderPath = "C:\foo"
-$shareName = "foo"
-
-# Create the folder if it doesn't exist
-if (-Not (Test-Path -Path $folderPath)) {
-    New-Item -Path $folderPath -ItemType Directory | Out-Null
-    Write-Host "Folder '$folderPath' created."
-} else {
-    Write-Host "Folder '$folderPath' already exists."
-}
-
-# Grant "Everyone" full access to the folder
-$acl = Get-Acl -Path $folderPath
-$accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule("Everyone", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
-$acl.SetAccessRule($accessRule)
-Set-Acl -Path $folderPath -AclObject $acl
-Write-Host "Granted 'Everyone' full access to '$folderPath'."
-
-# Share the folder with "Everyone" having full access
-New-SmbShare -Name $shareName -Path $folderPath -FullAccess "Everyone"
-Write-Host "Folder '$folderPath' shared as '$shareName' with 'Everyone' full access."
