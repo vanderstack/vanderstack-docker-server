@@ -5,10 +5,9 @@
 6. Use `Manage Advanced Sharing Settings` to enable network sharing
 7. configure and run `create-user-and-share.ps1`
 8. Build VM launcher `csc /target:winexe /out:vanderstack-docker-server.exe vanderstack-docker-server.cs`
-9. launch VM
+9. configure and run `schedule-start-server.ps1`
 
 Todo:
-add script to autostart vm
 add tailscale
 add obsidian
 add n8n
