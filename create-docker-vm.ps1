@@ -1,7 +1,7 @@
 # Configuration variables
 $VBoxManage = "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe"
 $VMFolder = "E:\vanderstack-docker-server"
-$VMName = "docker-host-server"
+$VMName = "vanderstack-docker-server"
 $VMMemory = 2048          # Memory in MB
 $VMCPUs = 2               # Number of CPUs
 $VMDiskSize = 20000       # Disk size in MB
