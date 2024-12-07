@@ -8,6 +8,14 @@
 9. configure and run `schedule-start-server.ps1`
 
 Todo:
-add tailscale
-add obsidian
-add n8n
+add tailscale  
+add obsidian  
+add n8n  
+add retroarch  
+add media server   
+add cloudflare tunnel  
+add guacamole  
+add selenium  
+add yt-download  
+add torrent box?  
+add more
