@@ -77,23 +77,7 @@ if ($existingShare) {
     # Create the share. Deny access to "Everyone" otherwise it will be accessible by default.
     Write-Output "Sharing the folder '$folderPath' as '$shareName'. without any user permissions."
     New-SmbShare -Name $shareName -Path $folderPath -NoAccess "Everyone"
-# Define variables
-$ShareName = "NewShare"
-$SharePath = "C:\Path\To\Share"
 
-# Create the folder if it doesn't exist
-if (-Not (Test-Path $SharePath)) {
-    New-Item -ItemType Directory -Path $SharePath -Force
-}
-
-# Create the share
-New-SmbShare -Name $ShareName -Path $SharePath -Description "A restricted share with no default access" -FullAccess ""
-
-# Remove "Everyone" access
-Revoke-SmbShareAccess -Name $ShareName -AccountName "Everyone"
-
-# Verify permissions
-Get-SmbShareAccess -Name $ShareName
     # Grant the user read and write access to the share
     Write-Output "Granting read and write access to user '$username' for share '$shareName'."
     Grant-SmbShareAccess -Name $shareName -AccountName $username -AccessRight Change -Confirm:$false
@@ -102,3 +86,27 @@ Get-SmbShareAccess -Name $ShareName
 # Prevent the window from closing after the program ends
 Write-Host "Press any key to close this window..."
 [void][System.Console]::ReadKey()
+
+
+# Define folder path and share name
+$folderPath = "C:\foo"
+$shareName = "foo"
+
+# Create the folder if it doesn't exist
+if (-Not (Test-Path -Path $folderPath)) {
+    New-Item -Path $folderPath -ItemType Directory | Out-Null
+    Write-Host "Folder '$folderPath' created."
+} else {
+    Write-Host "Folder '$folderPath' already exists."
+}
+
+# Grant "Everyone" full access to the folder
+$acl = Get-Acl -Path $folderPath
+$accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule("Everyone", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
+$acl.SetAccessRule($accessRule)
+Set-Acl -Path $folderPath -AclObject $acl
+Write-Host "Granted 'Everyone' full access to '$folderPath'."
+
+# Share the folder with "Everyone" having full access
+New-SmbShare -Name $shareName -Path $folderPath -FullAccess "Everyone"
+Write-Host "Folder '$folderPath' shared as '$shareName' with 'Everyone' full access."
