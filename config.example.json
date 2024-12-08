@@ -1,0 +1,37 @@
+{
+    "create-docker-vm": {
+        "VBoxManage": "C:\\Program Files\\Oracle\\VirtualBox\\VBoxManage.exe",
+        "VMFolder": "C:\\docker-server",
+        "VMName": "docker-server",
+        "VMMemory": 2048,
+        "VMCPUs": 2,
+        "VMDiskSize": 20000,
+        "OSType": "linux_64",
+        "ISOPath": "alpine-docker-v3.20-x86_64.iso"
+    },
+    "create-user-and-share": {
+        "username": "docker-share-user",
+        "password": "",
+        "sharePath": "C:\\docker-server\\share",
+        "shareName": "docker-server-share$"
+    },
+    "delete-share": {
+        "sharePath": "C:\\docker-server\\share"
+    },
+    "delete-user": {
+        "username": "docker-share-user"
+    },
+    "docker-server-launcher": {
+        "VBoxManage": "C:\\Program Files\\Oracle\\VirtualBox\\VBoxManage.exe",
+        "VMName": "docker-server"
+    },
+    "schedule-docker-server-launcher": {
+        "taskName": "DockerServer",
+        "taskDescription": "Run Docker Server on system boot",
+        "exePath": "C:\\docker-server\\docker-server-launcher.exe",
+        "exeArguments": ""
+    },
+    "unschedule-docker-server-launcher": {
+        "taskName": "DockerServer"
+    }
+}

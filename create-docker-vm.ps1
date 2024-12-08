@@ -1,27 +1,63 @@
-# Configuration variables
-$VBoxManage = "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe"
-$VMFolder = "E:\vanderstack-docker-server"
-$VMName = "vanderstack-docker-server"
-$VMMemory = 2048          # Memory in MB
-$VMCPUs = 2               # Number of CPUs
-$VMDiskSize = 20000       # Disk size in MB
-$OSType = "linux_64"     # OS type (adjust as needed)
-$ISOPath = "alpine-docker-v3.20-x86_64.iso"
+# Get the script's directory and filename without the .ps1 extension
+$scriptPath = $MyInvocation.MyCommand.Path
+$scriptDir = Split-Path -Parent $scriptPath
+$scriptKey = [IO.Path]::GetFileNameWithoutExtension($scriptPath)
+
+# Path to the config file
+$configFilePath = Join-Path -Path $scriptDir -ChildPath "config.json"
+
+# Check if the config file exists
+if (-Not (Test-Path -Path $configFilePath)) {
+    Write-Error "Configuration file not found at $configFilePath."
+    
+    # Prevent the window from closing after the program ends
+    Write-Host "Press any key to close this window..."
+    [void][System.Console]::ReadKey()
+    exit 1
+}
+
+# Load and parse the JSON config file
+try {
+    $configData = Get-Content -Path $configFilePath -Raw | ConvertFrom-Json
+} catch {
+    Write-Error "Failed to parse the configuration file as JSON: $_"
+    
+    # Prevent the window from closing after the program ends
+    Write-Host "Press any key to close this window..."
+    [void][System.Console]::ReadKey()
+    exit 1
+}
+
+# Extract the section corresponding to the script's filename
+if (-Not $configData.$scriptKey) {
+    Write-Error "The '$scriptKey' section is missing in the configuration file."
+    
+    # Prevent the window from closing after the program ends
+    Write-Host "Press any key to close this window..."
+    [void][System.Console]::ReadKey()
+    exit 1
+}
+
+$config = $configData.$scriptKey
 
 Write-Host ""
-$IsVirtualBoxLocated = Test-Path $VBoxManage
+$IsVirtualBoxLocated = Test-Path $config.VBoxManage
 if ($IsVirtualBoxLocated) {
-    Write-Host "Using VirtualBox Manager $VBoxManage."
+    Write-Host "Using VirtualBox Manager $($config.VBoxManage)."
 } else {
-    Write-Warning "VirtualBox Manager is required. VirtualBox Manager was not found at $VBoxManage. Exiting script."
+    Write-Warning "VirtualBox Manager is required. VirtualBox Manager was not found at $($config.VBoxManage). Exiting script."
+    
+    # Prevent the window from closing after the program ends
+    Write-Host "Press any key to close this window..."
+    [void][System.Console]::ReadKey()
     exit
 }
 
 Write-Host ""
-Write-Host "VM will be created with the name $VMName."
-Write-Host "VM will be created with $VMMemory MB RAM."
-Write-Host "VM will be created with $VMCPUs CPU(s)."
-Write-Host "virtual hard disk will be created with $VMDiskSize MB (optional)."
+Write-Host "VM will be created with the name $($config.VMName)."
+Write-Host "VM will be created with $($config.VMMemory) MB RAM."
+Write-Host "VM will be created with $($config.VMCPUs) CPU(s)."
+Write-Host "virtual hard disk will be created with $($config.VMDiskSize) MB (optional)."
 
 # Configure build plan:
 # Step 1 - Handle Existing VM
@@ -35,32 +71,44 @@ Write-Host ""
 # When it does exist ask if it can be deleted
 # When it cannot be deleted exit early
 # When it can be deleted set a flag to delete it
-$IsVMRegistered = & $VBoxManage list vms | Select-String -Pattern $VMName
-$IsVMCreated = Test-Path "$VMFolder\$VMName\$VMName.vbox"
+$IsVMRegistered = & $config.VBoxManage list vms | Select-String -Pattern $config.VMName
+$IsVMCreated = Test-Path "$($config.VMFolder)\$($config.VMName)\$($config.VMName).vbox"
 if ($IsVMRegistered -or $IsVMCreated) {
     $DeleteVMResponse = Read-Host "The VM already exists. Do you want to configure the build plan to delete it? (Y/N)"
     $DeleteVMResponse = $DeleteVMResponse.ToUpper()
     if ($DeleteVMResponse -eq "Y") {
-        Write-Host "VM with name $VMName will be deleted..."
+        Write-Host "VM with name $($config.VMName) will be deleted..."
         $CanDeleteVM = "Y"
     } elseif ($DeleteVMResponse -eq "N") {
         Write-Host "Existing VM will not be modified. Exiting script."
+        
+        # Prevent the window from closing after the program ends
+        Write-Host "Press any key to close this window..."
+        [void][System.Console]::ReadKey()
         exit
     } else {
         Write-Host "Invalid response. Exiting script."
+        
+        # Prevent the window from closing after the program ends
+        Write-Host "Press any key to close this window..."
+        [void][System.Console]::ReadKey()
         exit
     }
 } else {
-    Write-Host "VM with name $VMName not found. Configuring the build plan to create a new VM."
+    Write-Host "VM with name $($config.VMName) not found. Configuring the build plan to create a new VM."
     $CanDeleteVM = "N"
 }
 
 # Ensure the ISO file exists
 # When the ISO file does not exist exit early
-if (Test-Path $ISOPath) {
-    Write-Host "Configuring the build plan to use the installer ISO file $ISOPath."
+if (Test-Path $config.ISOPath) {
+    Write-Host "Configuring the build plan to use the installer ISO file $($config.ISOPath)."
 } else {
-    Write-Warning "An installer ISO file is required. The installer ISO file not found at $ISOPath. Exiting script."
+    Write-Warning "An installer ISO file is required. The installer ISO file not found at $($config.ISOPath). Exiting script."
+    
+    # Prevent the window from closing after the program ends
+    Write-Host "Press any key to close this window..."
+    [void][System.Console]::ReadKey()
     exit
 }
 
@@ -78,6 +126,10 @@ $adapters | ForEach-Object -Begin { $index = 1 } {
 # If no adapters are found, display a message and exit
 if ($adapters.Count -eq 0) {
     Write-Host "No network adapters with status 'Up' found."
+    
+    # Prevent the window from closing after the program ends
+    Write-Host "Press any key to close this window..."
+    [void][System.Console]::ReadKey()
     exit
 }
 
@@ -115,9 +167,17 @@ if ($CanStart -eq "Y") {
     Write-Host "Building VM."
 } elseif ($CanStart -eq "N") {
     Write-Host "Exiting script."
+    
+    # Prevent the window from closing after the program ends
+    Write-Host "Press any key to close this window..."
+    [void][System.Console]::ReadKey()
     exit
 } else {
     Write-Host "Invalid response. Exiting script."
+    
+    # Prevent the window from closing after the program ends
+    Write-Host "Press any key to close this window..."
+    [void][System.Console]::ReadKey()
     exit
 }
 
@@ -125,55 +185,57 @@ if ($CanStart -eq "Y") {
 if ($CanDeleteVM -eq "Y") {
 
     # Delete the VM
-    Write-Host "Deleting existing VM: $VMFolder\$VMName\$VMName.vbox"
+    Write-Host "Deleting existing VM: $($config.VMFolder)\$($config.VMName)\$($config.VMName).vbox"
 
     if ($IsVMRegistered) {
-        # Get the Info for the VM Name
-        $VMInfo = & $VBoxManage list vms | Select-String -Pattern $VMName
-
         # Extract the UUID of the VM
-        $VMUUID = $VMName -replace '^.*{(.*)}.*$', '$1'
+        $VMUUID = $config.VMName -replace '^.*{(.*)}.*$', '$1'
 
         # Check if the VM is running
-        $RunningVMs = & $VBoxManage list runningvms | Select-String -Pattern $VMName
+        $RunningVMs = & $config.VBoxManage list runningvms | Select-String -Pattern $config.VMName
 
         if ($RunningVMs) {
             # Power off the VM
-            & $VBoxManage controlvm $VMUUID poweroff
+            & $config.VBoxManage controlvm $VMUUID poweroff
         }
 
         # Unregister the VM without deleting the disk
-        & $VBoxManage unregistervm $VMUUID
+        & $config.VBoxManage unregistervm $VMUUID
     }
     
     if ($IsVMCreated) {
-        Remove-Item -Path "$VMFolder\$VMName\$VMName.vbox" -Force
+        Remove-Item -Path "$($config.VMFolder)\$($config.VMName)\$($config.VMName).vbox" -Force
     }
 }
 
 # Create the VM
-Write-Host "Creating VM: $VMName"
-& $VBoxManage createvm --name $VMName --ostype $OSType --register --basefolder $VMFolder
+Write-Host "Creating VM: $($config.VMName)"
+& $config.VBoxManage createvm --name $config.VMName --ostype $config.OSType --register --basefolder $config.VMFolder
 
 # Set memory and CPUs
-& $VBoxManage modifyvm $VMName --memory $VMMemory --cpus $VMCPUs --ioapic on
+& $config.VBoxManage modifyvm $config.VMName --memory $config.VMMemory --cpus $config.VMCPUs --ioapic on
 
 # Configure network (BRIDGED)
-& $VBoxManage modifyvm $VMName --nic1 bridged --bridgeadapter1 $AdapterName
+& $config.VBoxManage modifyvm $config.VMName --nic1 bridged --bridgeadapter1 $AdapterName
 
 # Add the ISO file as a CD/DVD
-& $VBoxManage storagectl $VMName --name "IDE Controller" --add ide
-& $VBoxManage storageattach $VMName --storagectl "IDE Controller" --port 0 --device 0 --type dvddrive --medium $ISOPath
+& $config.VBoxManage storagectl $config.VMName --name "IDE Controller" --add ide
+& $config.VBoxManage storageattach $config.VMName --storagectl "IDE Controller" --port 0 --device 0 --type dvddrive --medium $config.ISOPath
 Write-Host "The installer ISO file has been mounted to the virtual DVD drive."
 
 # Set DVD as first boot order
-& $VBoxManage modifyvm $VMName --boot1 dvd
+& $config.VBoxManage modifyvm $config.VMName --boot1 dvd
 
 # Set additional options
-& $VBoxManage modifyvm $VMName --audio none --usb off --vrde on
+& $config.VBoxManage modifyvm $config.VMName --audio none --usb off --vrde on
 
 # Enable scaled window mode because we like nice things
-& $VBoxManage setextradata $VMName "GUI/LastScaleWindowPosition" "1,29,958,1002"
-& $VBoxManage setextradata $VMName "GUI/Scale" "true"
+& $config.VBoxManage setextradata $config.VMName "GUI/LastScaleWindowPosition" "1,29,958,1002"
+& $config.VBoxManage setextradata $config.VMName "GUI/Scale" "true"
 
-Write-Host "VM $VMName created successfully."
+Write-Host "VM $($config.VMName) created successfully."
+
+# Prevent the window from closing after the program ends
+Write-Host "Press any key to close this window..."
+[void][System.Console]::ReadKey()
+exit

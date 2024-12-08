@@ -1,0 +1,11 @@
+# Exclude executables and ISOs such as:
+# example.exe
+# alpine-docker-v3.20-x86_64.iso
+*.exe
+*.iso
+
+# Exclude custom configuration
+config.json
+
+# Include example configuration
+!config.example.json

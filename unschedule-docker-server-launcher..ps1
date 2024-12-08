@@ -39,13 +39,9 @@ if (-Not $configData.$scriptKey) {
 }
 
 $config = $configData.$scriptKey
-# Define the folder and share name for new share
-$username = $config.username
 
-# Ensure running as admin
-$currentUser = [Security.Principal.WindowsIdentity]::GetCurrent()
-$adminRole = [Security.Principal.WindowsBuiltInRole]::Administrator
-$isAdmin = (New-Object Security.Principal.WindowsPrincipal($currentUser)).IsInRole($adminRole)
+# Define variables
+$taskName = $config.taskName
 
 if (-not $isAdmin) {
     Write-Host "Restarting PowerShell as administrator..."
@@ -57,15 +53,12 @@ if (-not $isAdmin) {
     exit
 }
 
-# Check if the user exists
-$userExists = Get-LocalUser -Name $username -ErrorAction SilentlyContinue
-if ($userExists) {
-    
-    Write-Output "Deleting User '$username'."
-    Remove-LocalUser -Name $username
-    Write-Output "User '$username' deleted."
+# Check if Task Scheduler already has the task
+if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) {
+    Write-Output "Deleting existing task..."
+    Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
 } else {
-    Write-Output "User '$username' not found."
+    Write-Output "task $taskName does not exist..."
 }
 
 # Prevent the window from closing after the program ends

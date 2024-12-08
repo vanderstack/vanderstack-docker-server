@@ -1,0 +1,28 @@
+name: List GitHub Artifacts
+
+on:
+  workflow_dispatch: # Triggered manually
+
+jobs:
+  list-artifacts:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: List all artifacts
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const response = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+
+            if (response.data.artifacts.length > 0) {
+              const artifacts = response.data.artifacts;
+              console.log('Artifacts found:');
+              artifacts.forEach(artifact => {
+                console.log(`ID: ${artifact.id}, Workflow: ${artifact.workflow_run.head_branch}, SHA: Workflow: ${artifact.workflow_run.head_sha}, Created: ${artifact.created_at}, Download: ${artifact.archive_download_url}`);
+              });
+            } else {
+              console.log('No artifacts found.');
+            }

@@ -1,0 +1,54 @@
+name: Delete GitHub Artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      artifact_id:
+        description: 'ID of the artifact to delete'
+        required: true
+        type: string
+
+jobs:
+  delete-artifact:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Delete selected artifact
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const response = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            
+            const artifactId = '${{ inputs.artifact_id }}';
+            const artifactToDelete = response.data.artifacts.find(artifact => artifact.id == artifactId);
+
+            if (artifactToDelete) {
+              console.log(`Deleting artifact: ID: ${artifactToDelete.id}, Workflow: ${artifactToDelete.workflow_run.head_branch}, SHA: Workflow: ${artifactToDelete.workflow_run.head_sha}, Created: ${artifactToDelete.created_at}, Download: ${artifactToDelete.archive_download_url}`);
+              
+              await github.rest.actions.deleteArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: artifactToDelete.id
+              });
+              
+              console.log(`Artifact deleted successfully.`);
+              
+              console.log('Remaining artifacts:');
+              response.data.artifacts.filter(artifact => artifact.id != artifactId).forEach(artifact => {
+                console.log(`ID: ${artifact.id}, Workflow: ${artifact.workflow_run.head_branch}, SHA: Workflow: ${artifact.workflow_run.head_sha}, Created: ${artifact.created_at}, Download: ${artifact.archive_download_url}`);
+              });
+              
+            } else {
+              console.log(`Artifact with ID "${artifactId}" not found.`);
+              
+              if (response.data.artifacts.length > 0) {
+                const artifacts = response.data.artifacts;
+                console.log('Artifacts found:');
+                artifacts.forEach(artifact => {
+                  console.log(`ID: ${artifact.id}, Workflow: ${artifact.workflow_run.head_branch}, SHA: Workflow: ${artifact.workflow_run.head_sha}, Created: ${artifact.created_at}, Download: ${artifact.archive_download_url}`);
+                });
+              }
+            }
