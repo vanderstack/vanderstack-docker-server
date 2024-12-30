@@ -1,3 +1,8 @@
+# Purpose
+As I was prototyping my stack I wanted to host my workloads within virtualbox for portabiity and ease of setup and administration.
+My stack has deprecated this approach in favor of using proxmox to host an alpine container with docker compose and portainer.
+
+# Usage
 1. install VirtualBox
 2. Use `Manage Advanced Sharing Settings` to enable File and printer sharing and for all networks enable password protected sharing
 3. Use `Publish ISO` action from `vanderstack/Alpine-Docker-ISO/` to obtain Alpine docker server ISO
